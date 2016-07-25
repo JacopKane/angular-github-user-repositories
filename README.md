@@ -1,4 +1,7 @@
 # Angular Github Repo Listing
+
+[![Build Status](https://travis-ci.org/JacopKane/angular-github-user-repositories.svg?branch=master)](https://travis-ci.org/JacopKane/angular-github-user-repositories)
+
 Angular example app with listing github user repositories
 
 ## Demo
