@@ -2,7 +2,7 @@
   "name": "angular-github-user-repositories",
   "version": "1.0.0",
   "description": "Angular example app with listing github user repositories",
-  "main": "index.js",
+  "main": "src/js/app.js",
   "scripts": {
     "clean-css": "gulp clean-css",
     "clean-sass-imports": "gulp clean-sass-imports",
