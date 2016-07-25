@@ -17,6 +17,7 @@ angular.module('github-user-repositories', [])
 
       $http = $injector.get('$http'),
 
+      // Retrieves last page number
       checkLastPage = (response = false) => {
 
         if (!response) {
@@ -47,6 +48,7 @@ angular.module('github-user-repositories', [])
 
     const factory = {
 
+      // Sents multiple concurrent requests for subpages
       getAll : (userName, response) => {
 
         var
@@ -70,6 +72,7 @@ angular.module('github-user-repositories', [])
 
       },
 
+      // request for a github user repository
       get : (userName, params = {
         page : 1,
         per_page : 50
@@ -118,6 +121,7 @@ angular.module('github-user-repositories', [])
 
       githubUserRepositories = $injector.get('githubUserRepositoriesFactory'),
 
+      // checks current username is valid or not
       isUsernameValid = () => {
 
         if (!angular.isString(vm.userName)) {
@@ -127,12 +131,14 @@ angular.module('github-user-repositories', [])
         return vm.userName.length >= 1;
       },
 
+      // resets current error and loaded repositories
       resetRepositories = () => {
         $log.debug('resetting repositories');
         vm.repositories = [];
         vm.error = '';
       },
 
+      // checks response and sets an error if needed
       checkResponse = (response) => {
 
         if (angular.isObject(response) === false) {
@@ -164,6 +170,7 @@ angular.module('github-user-repositories', [])
 
       },
 
+      // formats repositories for link list
       formatRepositories = (repositories) => repositories
         .map((repository) => ({
           id : repository.id,
@@ -171,6 +178,7 @@ angular.module('github-user-repositories', [])
           link : repository.html_url
         })),
 
+      // sets repositories from given response
       updateRepositories = (response) => {
         $log.debug(`updateRepositories${response.config.params.page}`, response);
 
@@ -182,6 +190,7 @@ angular.module('github-user-repositories', [])
         return vm.repositories;
       },
 
+      // on username changes, triggers fetching repositories
       onUserNameChange = (newVal, oldVal) => {
         if (newVal === oldVal) {
           return false;
@@ -197,6 +206,7 @@ angular.module('github-user-repositories', [])
 
     Object.assign(vm, {
 
+      // locale strings
       str : {
         title : 'Github User Repositories',
         userName : 'Username',
@@ -213,6 +223,14 @@ angular.module('github-user-repositories', [])
 
       repositories : [],
 
+      userNameModelOptions : {
+        debounce: {
+          default : 250,
+          blur : 0
+        }
+      },
+
+      // strips empty space from username
       stripUserName : function (event) {
 
         if (!angular.isObject(event.target)) {
@@ -228,13 +246,7 @@ angular.module('github-user-repositories', [])
         }
       },
 
-      userNameModelOptions : {
-        debounce: {
-          default : 250,
-          blur : 0
-        }
-      },
-
+      // fetches all repositories to current context
       getRepositories : () => new Promise((resolve, reject) => {
 
         resetRepositories();
