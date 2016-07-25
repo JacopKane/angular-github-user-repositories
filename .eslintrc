@@ -6,7 +6,12 @@
     "es6": true
   },
   "rules" : {
-
+    "operator-linebreak" : 0,
+    "no-return-assign" : 0,
+    "padded-blocks" : 0,
+    "key-spacing" : 0,
+    "one-var" : 0,
+    "semi" : 0
   },
-  "extends": ["angular", "eslint:recommended"]
+  "extends": ["angular", "eslint:recommended", "standard"]
 }

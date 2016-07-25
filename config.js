@@ -4,7 +4,9 @@ import fs from 'fs-promise';
 
 let
   pathBase = '.',
+  pathKarma = `${__dirname}/karma.conf.js`,
   pathSrc = `${pathBase}/src`,
+  pathTest = `${pathBase}/test`,
   pathVendor = `${pathBase}/node_modules`,
   pathSass = `${pathSrc}/scss`,
   pathTemplate = `${pathSrc}/template`,
@@ -21,11 +23,14 @@ let
   patternTemplate = `${pathTemplate}/**/*.html`,
   patternHtml = `${pathSrc}/**/*.html`,
   patternJs = `${pathJs}/**/*.js`,
+  patternJsDist = `${pathJsDist}/**/*.js`,
   patternDemo = `${pathDemo}/**/*`,
+  patternSpec = `${pathTest}/**/*.spec.js`,
   patternVendor = [`${pathVendor}/angular/**/angular.js`];
 
 export const config = {
   pathBase,
+  pathKarma,
   pathSrc,
   pathSass,
   pathHtml,
@@ -44,6 +49,9 @@ export const config = {
   patternVendor,
   pathVendorDist,
   patternDemo,
+  pathTest,
+  patternSpec,
+  patternJsDist,
   serverPort : 9191,
   templateCacheName : 'app-tpl',
   package : require(`${pathBase}/package.json`),
@@ -58,4 +66,3 @@ export const config = {
 };
 
 export default config;
-

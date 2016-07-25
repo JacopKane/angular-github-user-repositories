@@ -3,12 +3,11 @@
   <a
     target="_blank"
     class="list-group-item"
-    data-ng-if="repositories.length"
-    data-ng-href="{{repository.link}}"
-    data-ng-repeat="repository in repositories">
+    data-ng-href="{{linkListItem.link}}"
+    data-ng-repeat="linkListItem in linkList | orderBy: 'name' track by linkListItem.id">
 
-    <h4 class="list-group-item-heading">{{repository.name}}</h4>
-    <p class="list-group-item-text">{{repository.link}}</p>
+    <h4 class="list-group-item-heading">{{linkListItem.name}}</h4>
+    <p class="list-group-item-text">{{linkListItem.link}}</p>
 
   </a>
 

@@ -1,9 +1,11 @@
-const
+angular.module('app', [
+  'template-cache',
+  'github-user-repositories'
+])
+  .config(function ($logProvider) {
 
-  app = angular.module('app', [
-    'template-cache',
-    'github-user-repositories'
-  ])
-    .config(['$logProvider', function ($logProvider) {
-      $logProvider.debugEnabled(false);
-    }]);
+    // @if environment='production'
+    $logProvider.debugEnabled(false);
+    // @endif
+
+  });

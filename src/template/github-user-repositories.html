@@ -1,0 +1,37 @@
+<section data-ng-controller="GithubUserRepositoriesController as vm">
+  <h1>{{vm.str.title}}</h1>
+
+  <hr />
+
+  <form ng-submit="vm.getRepositories()">
+
+    <div class="input-group">
+
+      <span class="input-group-addon">{{vm.str.userName}} :</span>
+
+      <input
+        type="text"
+        class="form-control"
+        placeholder="{{vm.str.usernamePlaceholder}}"
+        data-ng-trim="false"
+        data-ng-model="vm.userName"
+        data-ng-keypress="vm.stripUserName($event)"
+        aria-describedby="basic-addon"
+        data-ng-model-options="vm.userNameModelOptions" />
+
+    </div>
+
+  </form>
+
+  <hr />
+
+  <link-listing
+    data-ng-if="vm.repositories.length"
+    data-links="vm.repositories">
+  </link-listing>
+
+  <div
+    class="alert alert-danger"
+    data-ng-if="vm.error.length"
+    role="alert">{{vm.error}}</div>
+</section>

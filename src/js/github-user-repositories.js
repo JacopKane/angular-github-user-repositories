@@ -1,16 +1,21 @@
 angular.module('github-user-repositories', [])
-  .directive('linkListing', function() {
+  .directive('linkListing', () => {
     return {
       scope : {
-        'repositories' : '=repositories'
+        'linkList' : '=links'
       },
       restrict: 'E',
+      replace : true,
       templateUrl: './template/link-listing.html'
     };
   })
-  .factory('GithubUserRepositoriesFactory', ['$http', ($http) => {
+  .factory('githubUserRepositoriesFactory', ($injector) => {
 
     const
+
+      $log = $injector.get('$log'),
+
+      $http = $injector.get('$http'),
 
       checkLastPage = (response = false) => {
 
@@ -36,7 +41,7 @@ angular.module('github-user-repositories', [])
           return false;
         }
 
-        return parseInt(links.replace(/(\w*)\/repos\?page=(\d*).*/g, "$2"), 10);
+        return parseInt(links.replace(/(\w*)\/repos\?page=(\d*).*/g, '$2'), 10);
 
       };
 
@@ -44,176 +49,255 @@ angular.module('github-user-repositories', [])
 
       getAll : (userName, response) => {
 
-        let
-          lastPage = checkLastPage(response),
-          promises = [],
+        var
+          lastPage = checkLastPage(response) || 0,
+          requests = [],
           params = response.config.params;
 
-        if (lastPage) {
-
-          for (let page = response.config.params.page; page <= lastPage; page++) {
-            params.page = page;
-            promises.push(factory.get(userName, params));
-          }
-
+        if (!lastPage) {
+          return requests;
         }
 
-        return promises;
+        for (var page = params.page + 1; page <= lastPage; page++) {
+          var request = factory.get(userName, {
+            per_page : params.per_page,
+            page
+          });
+          requests.push(request);
+        }
+
+        return requests;
 
       },
 
       get : (userName, params = {
-        page :     1,
-        per_page : 100
-      }) => $http({
-        url : `https://api.github.com/users/${userName}/repos`,
-        method : 'GET',
-        params
-      })
-        .then((response) => {
-          if (!response.data) {
-            return Promise.reject(new Error(vm.str.noResponse));
+        page : 1,
+        per_page : 50
+      }) => (new Promise((resolve, reject) => {
+
+        $log.debug(
+          'get',
+          `Username : ${userName}`,
+          `Page : ${params.page}`,
+          `Per Page : ${params.per_page}`,
+          params
+        );
+
+        return $http({
+          method : 'GET',
+          url : `https://api.github.com/users/${userName}/repos`,
+          params
+        }).then((response) => {
+
+          if (!response.status) {
+            return reject(response);
           }
 
-          return Promise.resolve(response);
-        })
-        .catch((error) => Promise.reject(error))
-    };
+          if (response.status !== 200) {
+            return reject(response);
+          }
 
+          return resolve(response);
+
+        }, (error) => reject(error))
+
+      }))
+
+    };
 
     return factory;
 
-  }])
-  .controller('GithubUserRepositoriesController', [
-    '$scope',
-    '$log',
-    'GithubUserRepositoriesFactory',
-    function($scope, $log, githubUserRepositories) {
+  })
+  .controller('GithubUserRepositoriesController', function ($scope, $injector) {
 
-      const
+    const
 
-        isUsernameValid = () => {
+      vm = this,
 
-          if (typeof this.userName !== 'string') {
-            return false;
-          }
+      $log = $injector.get('$log'),
 
-          return this.userName.length >= 1;
-        },
+      githubUserRepositories = $injector.get('githubUserRepositoriesFactory'),
 
-        resetRepositories = () => {
-          this.repositories = [];
-          this.error = false;
-        },
+      isUsernameValid = () => {
 
-        failedToUpdateRepositories = (error) => {
-          $log.debug('failedToUpdateRepositories', error);
-          return this.error = typeof error === 'object' && error.status === 404 ?
-            this.str.noUser : this.str.noResponse;
-        },
+        if (!angular.isString(vm.userName)) {
+          return false;
+        }
 
+        return vm.userName.length >= 1;
+      },
 
-        updateRepositories = (response) => {
+      resetRepositories = () => {
+        $log.debug('resetting repositories');
+        vm.repositories = [];
+        vm.error = '';
+      },
 
-          $log.debug('updateRepositories', response);
+      checkResponse = (response) => {
 
-          if (!response.data) {
-            failedToUpdateRepositories(response);
-            return false;
-          }
+        if (angular.isObject(response) === false) {
+          vm.error = vm.str.noResponse;
+          $log.error('checkResponse', vm.str.noResponse, response);
+          return false;
+        }
+
+        if (response.status === 200) {
 
           if (response.data.length === 0) {
-            this.error = this.str.noRepos;
-            return false;
+            vm.error = vm.str.noRepos;
+            $log.debug('checkResponse', vm.str.noRepos, response);
           }
 
-          return this.repositories = this.repositories
-            .concat(response.data.map((repository) => {
-              return ({
-                name : repository.name,
-                link : repository['html_url']
-              });
-            }));
-        },
+          $log.debug('checkResponse', 200, response);
+          return true;
+        }
 
-        onUserNameChange = (newVal, oldVal) => (newVal !== oldVal) ?
-          this.getRepositories()
-            .then((repositories) => $log.debug('getRepositories', repositories))
-            .catch(failedToUpdateRepositories) : false;
+        if (response.status === 404) {
+          vm.error = vm.str.noUser;
+          $log.debug('checkResponse', vm.str.noUser, response);
+          return false;
+        }
 
-      Object.assign(this, {
+        $log.debug('checkResponse', vm.str.noResponse, response);
+        vm.error = vm.str.noResponse;
+        return false;
 
-        str : {
-          title : 'Github User Repositories',
-          userName : 'Username',
-          usernamePlaceholder : 'Please write a Github username to search',
-          invalidUserName : 'Username is not valid',
-          noUser : 'The Github user does not exist',
-          noRepos : 'Github user has no repos',
-          noResponse : 'Github API does not respond'
-        },
+      },
 
-        error : false,
+      formatRepositories = (repositories) => repositories
+        .map((repository) => ({
+          id : repository.id,
+          name : repository.name,
+          link : repository.html_url
+        })),
 
-        userName : '',
+      updateRepositories = (response) => {
+        $log.debug(`updateRepositories${response.config.params.page}`, response);
 
-        repositories : [],
+        vm.repositories = vm.repositories
+          .concat(formatRepositories(response.data));
 
-        stripUserName : function (event) {
+        $scope.$digest();
 
-          if (typeof event.target !== 'object') {
-            return false;
-          }
+        return vm.repositories;
+      },
 
-          if (typeof event.target.value !== 'string') {
-            return false;
-          }
+      onUserNameChange = (newVal, oldVal) => {
+        if (newVal === oldVal) {
+          return false;
+        }
 
-          if (event.target.value.indexOf(' ') >= 0) {
-            this.userName = event.target.value.replace(/\s+/g, '');
-          }
-        },
+        return vm
+          .getRepositories()
+          .then((repositories) => $log
+            .debug('onUserNameChange.getRepositories', repositories))
+          .catch((repositories) => $log
+            .error('onUserNameChange.failedToGetRepositories', repositories));
+      };
 
-        userNameModelOptions : {
-          debounce: {
-            default : 250,
-            blur : 0
-          }
-        },
+    Object.assign(vm, {
 
-        getRepositories : () => new Promise((resolve, reject) => {
+      str : {
+        title : 'Github User Repositories',
+        userName : 'Username',
+        usernamePlaceholder : 'Please write a Github username to search',
+        invalidUserName : 'Username is not valid',
+        noUser : 'The Github user does not exist',
+        noRepos : 'Github user has no repos',
+        noResponse : 'Github API does not respond'
+      },
 
-          resetRepositories();
+      error : false,
 
-          if (!isUsernameValid(this.userName)) {
-            return false;
-          }
+      userName : '',
 
-          githubUserRepositories
-            .get(this.userName)
-            .then((response) => {
+      repositories : [],
 
-              if (!response || !updateRepositories(response)) {
-                failedToUpdateRepositories(response);
-                return Promise.reject(response);
-              }
+      stripUserName : function (event) {
 
-              return Promise.all(githubUserRepositories
-                .getAll(this.userName, response)
-                .map((promise) => promise
-                  .then(updateRepositories)
-                  .catch(failedToUpdateRepositories)));
+        if (!angular.isObject(event.target)) {
+          return false;
+        }
 
-            })
-            .catch(failedToUpdateRepositories)
-            .then(resolve);
+        if (!angular.isString(event.target.value)) {
+          return false;
+        }
 
-        })
+        if (event.target.value.indexOf(' ') >= 0) {
+          vm.userName = event.target.value.replace(/\s+/g, '');
+        }
+      },
 
+      userNameModelOptions : {
+        debounce: {
+          default : 250,
+          blur : 0
+        }
+      },
 
-      });
+      getRepositories : () => new Promise((resolve, reject) => {
 
-      $scope.$watch(() => this.userName, onUserNameChange);
+        resetRepositories();
 
-    }
-  ]);
+        if (isUsernameValid(vm.userName) === false) {
+          return resolve(vm.repositories);
+        }
+
+        githubUserRepositories
+          .get(vm.userName)
+          .then((response) => {
+
+            if (checkResponse(response) === false) {
+              return reject(response);
+            }
+
+            if (updateRepositories(response) === false) {
+              return reject(response);
+            }
+
+            var subPages = githubUserRepositories
+              .getAll(vm.userName, response);
+
+            if (!subPages.length) {
+              return resolve(vm.repositories);
+            }
+
+            let subRequests = subPages.map((request) => {
+              request
+                .then((response) => {
+                  $log.debug(`subPage${response.config.params.page}`, response);
+                  if (checkResponse(response)) {
+                    updateRepositories(response);
+                  }
+                })
+                .catch((error) => {
+                  $log.error('subPage', error);
+                  checkResponse(response);
+                });
+            });
+
+            return Promise.all(subRequests);
+
+          })
+          .catch((response) => {
+
+            checkResponse(response);
+            $scope.$digest();
+
+            reject(response);
+
+          })
+          .then(() => {
+
+            resolve(vm.repositories);
+
+          })
+          .catch(reject);
+
+      })
+
+    });
+
+    $scope.$watch(() => vm.userName, onUserNameChange);
+
+  });
